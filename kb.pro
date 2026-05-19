@@ -30,10 +30,10 @@ cert(apic-ptl-portal-director, apic-ingress-issuer, [ 'key encipherment', 'digit
 cert(apic-ptl-portal-web, apic-ingress-issuer, [ 'key encipherment', 'digital signature', 'server auth' ], 'PortalCluster', apic-ptl-portal-web, '2028-04-15T04:08:56Z', 'apic-ptl-portal-web-cp4i.apps.roky.szesto.io').
 cert(apic-ptl-server, apic-ptl-ca, [ 'key encipherment', 'digital signature', 'server auth' ], 'PortalCluster', apic-ptl-server, '2028-04-15T04:08:23Z', 'apic-ptl-server').
 cert(cs-ca-certificate, cs-ss-issuer, null, null, cs-ca-certificate-secret, '2027-09-14T14:28:47Z', 'cs-ca-certificate').
-%cert(evtmgr1-ibm-eem-manager, evtmgr1-ibm-eem-manager, null, 'EventEndpointManagement', evtmgr1-ibm-eem-manager, '2026-07-17T02:24:59Z', null).
-%cert(evtmgr1-ibm-eem-manager-ca, evtmgr1-ibm-eem-manager-selfsigned, null, 'EventEndpointManagement', evtmgr1-ibm-eem-manager-ca, '2027-01-16T10:24:47Z', 'IBM Event Endpoint Management').
-%cert(evtmgr1-ibm-eem-orgapi, evtmgr1-ibm-eem-orgapi, null, 'EventEndpointManagement', evtmgr1-ibm-eem-orgapi, '2026-07-17T02:25:06Z', null).
-%cert(evtmgr1-ibm-eem-orgapi-ca, evtmgr1-ibm-eem-manager-selfsigned, null, 'EventEndpointManagement', evtmgr1-ibm-eem-orgapi-ca, '2027-01-16T10:24:53Z', 'IBM Event Endpoint Management').
+cert(evtmgr1-ibm-eem-manager, evtmgr1-ibm-eem-manager, null, 'EventEndpointManagement', evtmgr1-ibm-eem-manager, '2026-07-17T02:24:59Z', null).
+cert(evtmgr1-ibm-eem-manager-ca, evtmgr1-ibm-eem-manager-selfsigned, null, 'EventEndpointManagement', evtmgr1-ibm-eem-manager-ca, '2027-01-16T10:24:47Z', 'IBM Event Endpoint Management').
+cert(evtmgr1-ibm-eem-orgapi, evtmgr1-ibm-eem-orgapi, null, 'EventEndpointManagement', evtmgr1-ibm-eem-orgapi, '2026-07-17T02:25:06Z', null).
+cert(evtmgr1-ibm-eem-orgapi-ca, evtmgr1-ibm-eem-manager-selfsigned, null, 'EventEndpointManagement', evtmgr1-ibm-eem-orgapi-ca, '2027-01-16T10:24:53Z', 'IBM Event Endpoint Management').
 
 issuer(apic-a7s-ca, apic-a7s-ca).
 issuer(apic-ingress-issuer, apic-ingress-ca).
@@ -42,9 +42,10 @@ issuer(apic-ptl-ca, apic-ptl-ca).
 issuer(apic-self-signed, null).
 issuer(cs-ca-issuer, cs-ca-certificate-secret).
 issuer(cs-ss-issuer, null).
-%issuer(evtmgr1-ibm-eem-manager, evtmgr1-ibm-eem-manager-ca).
-%issuer(evtmgr1-ibm-eem-manager-selfsigned, null).
-%issuer(evtmgr1-ibm-eem-orgapi, evtmgr1-ibm-eem-orgapi-ca).
+issuer(evtmgr1-ibm-eem-manager, evtmgr1-ibm-eem-manager-ca).
+issuer(evtmgr1-ibm-eem-manager-selfsigned, null).
+issuer(evtmgr1-ibm-eem-orgapi, evtmgr1-ibm-eem-orgapi-ca).
+
 
 issuer(I) :- issuer(I, _S).
 
@@ -89,6 +90,9 @@ endp_cert(Cert, Cn) :- endp_cert(Cert), cert_cn(Cert, Cn).
 server_auth(Us) :- member('server auth', Us).
 client_auth(Us) :- member('client auth', Us).
 
+server_cert(C) :- cert_usages(C, Us), server_auth(Us).
+client_cert(C) :- cert_usages(C, Us), client_auth(Us).
+
 % ingress user facing certs
 user_facing_cert(Cert, Issuer, Us, Subsys, Cn) :- ingress_cert(Cert, Issuer, Us, Subsys), server_auth(Us), endp_cert(Cert, Cn).
 
@@ -121,9 +125,29 @@ restart_pods_renew(apic-a7s-ai-endpoint, [mtls-gw], 'AnalyticsCluster').
 
 % keystores
 keystore(analytics-ingestion-keystore, apic-a7s-ing-client).
+keystore(gateway-management-client-keystore, apic-gw-dr-client).
+keystore(portal-director-keystore, apic-ptl-adm-client).
+
+% default tls server cert is ingress cert used for api traffic
+keystore(default-tls-server-keystore, 'IBM API Connect').
 
 keystore(Keystore, Cert, Cn) :- keystore(Keystore, Cert), cert_cn(Cert, Cn).
 
-%tls_client_profile(Name, Protocols, Ciphers, Sni, Keystore, Truststore).
-tls_client_profile(analytics-igestion-default-tls-cp, analytics-ingestion-keystore, default_truststore).
+% truststores
+trs(analytics-ingestion-truststore, apic-ingress-ca).
+trs(portal-director-truststore, apic-ingress-ca).
+trs(gateway-management-client-truststore, apic-ingress-ca).
 
+truststore(T, C, Cn) :- trs(T,C), ca_cert(C), cert_cn(C, Cn).
+
+% tls client profiles
+tls_cp(analytics-ingestion-tls-client-profile, analytics-ingestion-keystore, analytics-ingestion-truststore, _Ptl, _Cph, _Cni).
+tls_cp(gateway-management-client-tls-client-profile, gateway-management-client-keystore, gateway-management-client-truststore, _Ptl, _Cph, _Cni).
+tls_cp(portal-director-tls-client-profile, portal-director-keystore, portal-director-truststore, _Ptl, _Cph, _Cni).
+tls_cp(default-tls-client-profile, null, null, _Ptl, _Cph, _Cni).
+
+tls_client_profile(Pr, Kstore, Tstore) :- tls_cp(Pr, Kstore, Tstore, _Ptl, _Ciph, _Cni), keystore(Kstore, _Kc, _Kcn), truststore(Tstore, _Tc, _Tcn).
+tls_client_profile(Pr, null, null) :- tls_cp(Pr, null, null, _Ptl, _Cph, _Cni).
+
+% tls server profiles
+tls_server_profile(default-tls-server-profile, _Protocols, _Ciphers, mutual-auth-none, default_tls_server_keystore, _T).
