@@ -88,3 +88,58 @@ What is web portal cert cn?
 Cn = 'apic-ptl-portal-web-cp4i.apps.roky.szesto.io'.
 ```
 
+
+*Adding Gateway subsystem.*
+
+What certs are used to communicate to gateway subsystem?
+What is gateway server certificate cn?
+
+```
+?- tosubsys(C,S,'GatewayCluster',I,Cnm), cert_cn(S, Cn).
+C = apic-gw-dr-client,
+S = apic-gw-gateway-manager,
+I = apic-ingress-issuer,
+Cnm = 'cn match not required',
+Cn = 'apic-gw-gateway-manager-cp4i.apps.roky.szesto.io' .
+```
+
+Ensure gateway management endpoint communication. (This is part of tosubsys() clause).
+
+```
+?- same_issuer(apic-gw-dr-client, apic-gw-gateway-manager, I).
+I = apic-ingress-issuer .
+```
+
+What is gateway tls client profile?
+
+```
+?- tls_client_profile(Profile, Kstore, Tstore), keystore(Kstore, apic-gw-dr-client, Kcn), truststore(Tstore, Tcert, Tcn).
+Profile = gateway-management-client-tls-client-profile,
+Kstore = gateway-management-client-keystore,
+Tstore = gateway-management-client-truststore,
+Kcn = 'gw-dr-client',
+Tcert = apic-ingress-ca,
+Tcn = 'ingress-ca' .
+```
+
+What is api gateway endpoint?
+
+```
+@todo
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
