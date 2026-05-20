@@ -78,6 +78,7 @@ inter_subsys_cert(Cert, Issuer, Us, Subsys) :- ingress_cert(Cert, Issuer, Us, Su
 
 intra_subsys_cert(Cert, Issuer, Us, Subsys) :- subsys_issuer(Issuer, Subsys), Issuer \= apic-ingress-issuer, show_cert(Cert, Issuer, Us, Subsys).
 
+% this is incomplete. analytics ing endpoint is also endp
 endp_cert(apic-mgmt-platform-api).
 endp_cert(apic-mgmt-consumer-api).
 endp_cert(apic-mgmt-consumer-catalog).
